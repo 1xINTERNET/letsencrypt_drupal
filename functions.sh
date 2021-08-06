@@ -81,6 +81,17 @@ drush_set_challenge()
   TOKEN_VALUE="${4}"
 
   pushd /var/www/html/${PROJECT}.${ENVIRONMENT}
+  
+  echo "Checking if basic auth is enabled"
+  shield_en=$(drush --uri=${DOMAIN} pml | grep shield | grep Enabled)
+  if [[ -z "${shield_en}" ]]; then 
+    echo "Shield disabled"
+  else
+    ENABLE_SHIELD="true"
+    echo "Shield enabled, disabling"
+    drush -y --uri=${DOMAIN} pmu shield
+  fi
+  
   echo "EXECUTING: drush en -y --uri=${DOMAIN} letsencrypt_challenge"
   drush en -y --uri=${DOMAIN} letsencrypt_challenge
   echo "EXECUTING: drush sset -y --uri=${DOMAIN} letsencrypt_challenge.challenge \"${TOKEN_VALUE}\""
@@ -97,5 +108,11 @@ drush_clean_challenge()
 
   pushd /var/www/html/${PROJECT}.${ENVIRONMENT}
   drush pmu -y --uri=${DOMAIN} letsencrypt_challenge
+  
+  if [[ ! -z "${ENABLE_SHIELD}" ]]; then
+    drush -y --uri=${DOMAIN} en shield
+  fi
+  
   popd
+  
 }
